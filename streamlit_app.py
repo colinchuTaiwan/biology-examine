@@ -47,6 +47,15 @@ def init_firebase():
 # 訪客計數器
 # =========================
 
+@st.cache_data(ttl=300)  # 5 分鐘快取，避免每次 rerun 都對 Firebase 做即時讀取
+def _get_visitor_count_cached(site_id: str) -> int:
+    ref = firebase_db.reference(f"visitor_counts/{site_id}")
+    try:
+        v = ref.get()
+        return v if v is not None else 0
+    except Exception:
+        return 0
+
 def track_visitor(site_id: str) -> int:
     init_firebase()
     ref = firebase_db.reference(f"visitor_counts/{site_id}")
@@ -58,8 +67,7 @@ def track_visitor(site_id: str) -> int:
             st.session_state["counted"] = True
             return count
         else:
-            v = ref.get()
-            return v if v is not None else 0
+            return _get_visitor_count_cached(site_id)
     except Exception:
         return 0
 
